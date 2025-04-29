@@ -71,6 +71,23 @@ bool lcdoff = false;
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
 Adafruit_SHT31 sht31Out = Adafruit_SHT31();
 
+struct netmessage {
+  int16_t temp_inside;
+  int16_t temp_outside;
+  int16_t temp_setpoint;
+  int16_t humid_inside;
+  int16_t humid_outside;
+  int16_t humid_setpoint;
+  // 0: Pump on
+  // 1: Single shutter
+  // 2: Double shutter
+  // 3: Fan
+  int8_t  mechanism_state;
+  // RECIRC, VENT, etc.
+  int8_t  operating_state;
+  int32_t paddry_time_left;
+};
+
 void setup() {
   char buf2[] = "YYYY-MM-DDThh:mm:ss";
   
