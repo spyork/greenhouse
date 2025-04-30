@@ -76,7 +76,7 @@ bool lcdoff = false;
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
 Adafruit_SHT31 sht31Out = Adafruit_SHT31();
 int status = WL_IDLE_STATUS;
-WiFiServer server(80);
+WiFiServer server(21);
 
 struct netmessage {
   int16_t temp_inside;
@@ -549,107 +549,61 @@ void printWifiStatus() {
   Serial.print(rssi);
   Serial.println(" dBm");
   // print where to go in a browser:
-  Serial.print("To see this page in action, open a browser to http://");
-  Serial.println(ip);
+  Serial.print("To see this page in action, echo '' | netcat 21 ");
+  Serial.print(ip);
+  Serial.println(" | hexdump");
+}
+
+void fillNetMessage(struct netmessage* ptr) {
+  ptr->temp_inside = curr_temp;
+  ptr->temp_outside = outsideTemp;
+  ptr->temp_setpoint = set_temp;
+  ptr->humid_inside = curr_humid;
+  ptr->humid_outside = outsideHumidity;
+  ptr->humid_setpoint = set_hum;
+  int8_t mechstate = 0;
+  if (pump_on) {
+    mechstate |= (1 << 0);
+  }
+  if (shutter_vent) {
+    mechstate |= (1 << 1);
+  }
+  if (shutter_swamp) {
+    mechstate |= (1 << 2);
+  }
+  if (fan_state) {
+    mechstate |= (1 << 3);
+  }
+  ptr->mechanism_state = mechstate;
+  ptr->operating_state = ghstate;
+  if (ghstate != PADDRY) {
+    ptr->paddry_time_left = 0;
+  } else {
+    ptr->paddry_time_left = padTime - now->unixtime();
+  }
 }
 
 void processWebRequests() {
 
   int httpResult = 200;
 
-  // Take Web server requests
+  // Take telnet requests
   WiFiClient client = server.available();   // listen for incoming clients
   if (client) {                             // if you get a client,
-    Serial.println("new client");           // print a message out the serial port
-    String currentLine = "";                // make a String to hold incoming data from the client
-    while (client.connected()) {            // loop while the client's connected
-      if (client.available()) {             // if there's bytes to read from the client,
-        char c = client.read();             // read a byte, then
-        // Serial.write(c);                    // print it out to the serial monitor
-        if (c == '\n') {                    // if the byte is a newline character
-          // if the current line is blank, you got two newline characters in a row.
-          // that's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0) {
-            if (httpResult == 404) {
-              client.println("HTTP/1.1 404 File not found");
-              client.println("Content-type:text/html");
-              client.println("Connection: close");
-              client.stop();
-            } else {
-              // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-              // and a content-type so the client knows what's coming, then a blank line:
-              client.println("HTTP/1.1 200 OK");
-              client.println("Content-type:text/html");
-              client.println("Connection: close");
-              client.println();
-              client.println("<!DOCTYPE html>");
-              client.println("<HEAD>");
-              client.println("<BODY>");
-            
-              client.print("<BR>Greenhouse temp: ");
-              client.println(curr_temp);
-              client.print("<BR>Outside temp: ");
-              client.println(outsideTemp);
-              client.print("<BR>Temperature Setpoint: ");
-              client.println(set_temp);
-              client.print("<BR>Greenhouse humidity: ");
-              client.println(curr_humid);
-              client.print("<BR>Outside humidity: ");
-              client.println(outsideHumidity);
-              client.print("<BR>Humidity Setpoint: ");
-              client.println(set_hum);
-              client.print("<BR>Indoor Sensor fail count: ");
-              client.println(sns_fail_cnt);
-              client.print("<BR>Outdoor Sensor fail count: ");
-              client.println(sns2_fail_cnt);
+    int32_t connectedAt = now.unixtime();
+    struct netmessage msg;
+    fillNetMessage(&msg);
 
-              char *modestr = "";
-              switch (ghState) {
-                case RECIRC:
-                  modestr = "Recirculate";
-                  break;
-
-                case COOL:
-                  modestr = "Cooling";
-                  break;
-
-                case VENT:
-                  modestr = "Venting";
-                  break;
-
-                case PADDRY:
-                  modestr = "Pads Drying";
-                  break;
-
-                case DEHUM:
-                  modestr  ="Dehumidify";
-                  break;
-              }
-
-              client.print("<BR>Mode: ");
-              client.println(modestr);
-
-              // The HTTP response ends with another blank line:
-              client.println("</BODY></html>");
-              client.println();
-              client.stop();
-
-              // break out of the while loop:
-              break;
-            }
-          } else {    // if you got a newline, then clear currentLine:
-            String lastLine = currentLine;
-            if (lastLine.endsWith("GET /favicon.ico HTTP/1.1")) {
-              // Serial.println("favicon found"); 
-              httpResult = 404;
-            } else {
-              // Serial.print("No match for : ");
-              // Serial.println(lastLine);
-            }
-            currentLine = "";
-          }
-        } else if (c != '\r') {  // if you got anything else but a carriage return character,
-          currentLine += c;      // add it to the end of the currentLine
+    for (int i = 0; i < sizeof(msg); i++) {
+      client.write(*(((char*)&msg) + i));
+    }
+#define MAX_WAIT_MS 1000
+    while (client.connected() && (now.unixtime() - connectedAt > MAX_WAIT_MS)) {
+      if (client.available()) {
+        unsigned char c = client.read();
+        if (c > 160 && c < 170) {
+          // valid command byte
+          // TODO
         }
       }
     }
