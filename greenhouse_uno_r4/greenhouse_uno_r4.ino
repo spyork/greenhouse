@@ -579,14 +579,11 @@ void fillNetMessage(struct netmessage* ptr) {
   if (ghstate != PADDRY) {
     ptr->paddry_time_left = 0;
   } else {
-    ptr->paddry_time_left = padTime - now->unixtime();
+    ptr->paddry_time_left = now->unixtime() - padTime;
   }
 }
 
 void processWebRequests() {
-
-  int httpResult = 200;
-
   // Take telnet requests
   WiFiClient client = server.available();   // listen for incoming clients
   if (client) {                             // if you get a client,
