@@ -1,17 +1,46 @@
 <!DOCTYPE html>
 <head>
 <meta charset="utf-8" />
+<style>
+form {
+display: inline-block;
+}
+button {
+width: 48px;
+background: #a7cedb;
+height: 2.5em;
+margin-left: 16px;
+}
+</style>
 </head>
 <body>
 
+<h2>Status: {{formatOperatingState .NM.Operating_state}}{{if .IsPadDry}} <span class="paddry">(<span class="duration">{{formatDuration .NM.Paddry_time_left}}</span> remaining)</span>{{end}}</h2>
+{{if .Error}}
+<div class="error">Data fetch error: {{.Error}}</div>
+{{end}}
+
 <h2>Temperature</h2>
-<p>Current: <span>{{.Temp.Cur}}</span> Outside: <span>{{.Temp.Outside}}</span> Set: <span>{{.Temp.Set}}</span></p>
+<div>
+Current: <span>{{formatTemperature .NM.Temp_inside}}</span>
+Outside: <span>{{formatTemperature .NM.Temp_outside}}</span>
+Set: <span>{{formatTemperature .NM.Temp_setpoint}}</span>
 <form action="/temp_up"><button>↗️</button></form>
 <form action="/temp_dn"><button>↘️</button></form>
+</div>
 <h2>Humidity</h2>
-<p>Current: <span>{{.Humid.Cur}}</span> Outside: <span>{{.Humid.Outside}}</span> Set: <span>{{.Humid.Set}}</span></p>
+<div>
+Current: <span>{{formatHumidity .NM.Humid_inside}}</span>
+Outside: <span>{{formatHumidity .NM.Humid_outside}}</span>
+Set: <span>{{formatHumidity .NM.Humid_setpoint}}</span>
 <form action="/humid_up"><button>↗️</button></form>
 <form action="/humid_dn"><button>↘️</button></form>
+</div>
 
-<h2>State</h2>
-<p>Current state: <span class="{{.State.String}}">{{.State.String}}</span></p>
+<h2>Mechanisms</h2>
+<p>
+{{if .Fan}}✅{{else}}⏸️{{end}} Fan<br/>
+{{if .Pump}}✅{{else}}⏸️{{end}} Pump<br/>
+{{if .ShutterVent}}✅{{else}}⏸️{{end}} Shutter Vent<br/>
+{{if .ShutterSwamp}}✅{{else}}⏸️{{end}} Swamp Cooler Vent<br/>
+</p>
