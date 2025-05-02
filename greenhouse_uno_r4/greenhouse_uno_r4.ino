@@ -79,6 +79,7 @@ int status = WL_IDLE_STATUS;
 WiFiServer server(21);
 
 struct netmessage {
+  int32_t paddry_time_left;
   int16_t temp_inside;
   int16_t temp_outside;
   int16_t temp_setpoint;
@@ -92,7 +93,6 @@ struct netmessage {
   int8_t  mechanism_state;
   // RECIRC, VENT, etc.
   int8_t  operating_state;
-  int32_t paddry_time_left;
 };
 
 void setup() {
