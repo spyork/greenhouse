@@ -594,6 +594,7 @@ void processWebRequests() {
     for (int i = 0; i < sizeof(msg); i++) {
       client.write(*(((char*)&msg) + i));
     }
+    client.flush();
 #define MAX_WAIT_MS 1000
     while (client.connected() && (now.unixtime() - connectedAt > MAX_WAIT_MS)) {
       if (client.available()) {
@@ -604,5 +605,6 @@ void processWebRequests() {
         }
       }
     }
+    client.stop();
   }
 }
